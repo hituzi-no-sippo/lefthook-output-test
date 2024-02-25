@@ -1,0 +1,54 @@
+---
+name: Output test
+
+on:
+  - push
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-22.04
+    permissions: {}
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          # Gets the full git history of the repository.
+          # `Lint commit messages` action of this workflow
+          # uses the commit messages.
+          fetch-depth: 0
+
+      - name: Cache aqua
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: ~/.local/share/aquaproj-aqua
+          key: ${{ env.CACHE_PREFIX }}${{hashFiles('.aqua/**/*.yml')}}
+          restore-keys: ${{ env.CACHE_PREFIX }}
+          # This action always save the cache even if another step fails.
+          # https://github.com/actions/cache/blob/13aacd865c20de90d75de3b17ebe84f7a17d57d2/action.yml#L29-L30
+          # v4.0.0 Commit on 2024-01-17
+          save-always: true
+        env:
+          CACHE_PREFIX: v1-aqua-installer-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install tools with aqua
+        # yamllint disable-line rule:line-length
+        uses: aquaproj/aqua-installer@928a2ee4243a9ee8312d80dc8cbaca88fb602a91 # v2.2.0
+        with:
+          aqua_version: v2.21.3
+          # Does not use `-l` or `--only-link` flags to cache all tools.
+          aqua_opts: ""
+        env:
+          AQUA_LOG_LEVEL: debug
+          AQUA_LOG_COLOR: always
+
+      - name: output result of lefthook to file
+        run: sh output_test.sh
